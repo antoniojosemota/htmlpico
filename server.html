@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Pico Bussola</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #f0f8ff; }
+    #compass, #anemometer {
+      width: 150px;
+      transition: transform 1s ease-out;
+      margin: 20px auto;
+    }
+    .status {
+      font-size: 24px;
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Dashboard Pico Bussola</h1>
+
+  <div>
+    <h2>Rosa dos Ventos</h2>
+    <img id="compass" src="bussola.png" alt="Bússola">
+  </div>
+
+  <div class="status">
+    Botão: <span id="buttonState">Carregando...</span>
+  </div>
+
+  <div>
+    <h2>Cata-Vento</h2>
+    <img id="anemometer" src="catavento.png" alt="Cata-vento">
+  </div>
+
+  <script>
+    const direcaoEmGraus = {
+      "NORTE": 0,
+      "NORDESTE": 45,
+      "LESTE": 90,
+      "SUDESTE": 135,
+      "SUL": 180,
+      "SUDOESTE": 225,
+      "OESTE": 270,
+      "NOROESTE": 315,
+      "CENTRO": 0
+    };
+
+    async function fetchData() {
+      try {
+        const response = await fetch('https://pico-bussola-default-rtdb.firebaseio.com/leituras.json');
+        const data = await response.json();
+
+        // Pega a última leitura (última chave)
+        const keys = Object.keys(data);
+        const lastKey = keys[keys.length - 1];
+        const lastData = data[lastKey];
+
+        // Atualiza a bússola
+        const angulo = direcaoEmGraus[lastData.direcao.toUpperCase()] || 0;
+        document.getElementById('compass').style.transform = `rotate(${angulo}deg)`;
+
+        // Atualiza o cata-vento (sensor pode estar como string)
+        const sensorValue = parseInt(lastData.sensor) || 0;
+        document.getElementById('anemometer').style.transform = `rotate(${sensorValue * 0.2}deg)`; // fator ajustável
+
+        // Atualiza o estado do botão
+        const botaoSpan = document.getElementById('buttonState');
+        if (lastData.botao === "1") {
+          botaoSpan.innerText = "LIGADO";
+          botaoSpan.style.color = "green";
+        } else {
+          botaoSpan.innerText = "DESLIGADO";
+          botaoSpan.style.color = "red";
+        }
+
+        console.log('Dados recebidos:', lastData);
+
+      } catch (error) {
+        console.error('Erro ao buscar dados:', error);
+      }
+    }
+
+    // Atualiza a cada 2 segundos
+    setInterval(fetchData, 2000);
+    fetchData();
+  </script>
+
+</body>
+</html>
